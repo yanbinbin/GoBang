@@ -16,6 +16,10 @@ cc.Class({
             default: null,
             type: cc.Label,
         },
+        timeLabel: {
+            default: null,
+            type: cc.Label,
+        },
         newChessTip: {
             default: null,
             type: cc.Node
@@ -46,7 +50,10 @@ cc.Class({
         fiveGroup: [],
         fiveGroupScore: [],
         audioManager: cc.Node,
-        steps: 0
+        steps: 0,
+        time: 0,
+        gameOver: false,
+        stepOrderIndex: []
     },
 
     restartGame () {
@@ -64,6 +71,8 @@ cc.Class({
         this.newChessTip.node.active = false;
 
         this.steps = 0;
+        this.time = 0;
+        this.gameOver = false;
 
         this.audioManager = this.audioManager.getComponent('AudioManager');
 
@@ -78,8 +87,9 @@ cc.Class({
                 newChess.on(cc.Node.EventType.TOUCH_END, function(event){
                     self.touchChess = this;
                     if(self.gameState === 'black' && this.getComponent(cc.Sprite).spriteFrame === null){
+                        self.stepOrderIndex.push(this.tag);
                         this.getComponent(cc.Sprite).spriteFrame = self.blackSpriteFrame;
-                        self.newChessTip.node.setPosition(this.getPositionX() - 300, this.getPositionY() - 300);
+                        // self.newChessTip.node.setPosition(this.getPositionX() - 300, this.getPositionY() - 300);
                         self.audioManager.playPlayerPlaceChess();
                         self.judgeOver();
                         if(self.gameState === 'white'){
@@ -96,8 +106,7 @@ cc.Class({
 
         // 白棋先在棋盘正中下一子
         this.chessList[112].getComponent(cc.Sprite).spriteFrame = self.whiteSpriteFrame;
-        this.newChessTip.node.active = true;
-        this.audioManager.playComputePlaceChess();
+        this.timeLabel.node.active = true;
         this.audioManager.playComputePlaceChess();
         // 下一步应该下黑棋
         this.gameState = 'black';
@@ -200,7 +209,9 @@ cc.Class({
         }
         // 在最优位置下子
         this.chessList[this.fiveGroup[position][index]].getComponent(cc.Sprite).spriteFrame = this.whiteSpriteFrame;
+        this.stepOrderIndex.push(this.fiveGroup[position][index]);
         this.newChessTip.node.setPosition(this.chessList[this.fiveGroup[position][index]].getPositionX() - 300, this.chessList[this.fiveGroup[position][index]].getPositionY() - 300);
+        this.newChessTip.node.active = true;
         this.audioManager.playComputePlaceChess();
         this.touchChess = this.chessList[this.fiveGroup[position][index]];
         this.judgeOver();
@@ -285,6 +296,7 @@ cc.Class({
     },
 
     showResult () {
+        this.gameOver = true;
         if(this.gameState === 'black') {
             this.resultLabel.string = "你赢了";
             this.audioManager.playWin();
@@ -298,9 +310,36 @@ cc.Class({
         this.gameState = 'over';
     },
 
-    start () {
-        this.audioManager.playBgmMusic();
+    giveUp () {
+        this.gameState = 'white';
+        this.showResult();
     },
 
-    // update (dt) {},
+    retract () {
+        if(this.stepOrderIndex.length != 0) {
+            this.steps--;
+            this.chessList[this.stepOrderIndex.pop()].getComponent(cc.Sprite).spriteFrame = null;
+            this.chessList[this.stepOrderIndex.pop()].getComponent(cc.Sprite).spriteFrame = null;
+            if(this.stepOrderIndex.length != 0) {
+                this.newChessTip.node.setPosition(this.chessList[this.stepOrderIndex[this.stepOrderIndex.length - 1]].getPositionX() - 300, 
+                    this.chessList[this.stepOrderIndex[this.stepOrderIndex.length - 1]].getPositionY() - 300);
+            } else {
+                this.newChessTip.node.setPosition(0, 0);
+            }
+        }
+    },
+
+    start () {
+        this.audioManager.playBgmMusic();
+        this.callback = function () {
+            this.time++;
+        }
+        this.schedule(this.callback, 1);
+    },
+
+    update (dt) {
+        if(!this.gameOver) {
+            this.timeLabel.string = "时间：".concat(this.time).concat("秒");
+        }
+    },
 });
