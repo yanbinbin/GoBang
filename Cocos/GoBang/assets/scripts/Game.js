@@ -12,6 +12,10 @@ cc.Class({
             default: null,
             type: cc.Label,
         },
+        stepLabel: {
+            default: null,
+            type: cc.Label,
+        },
         newChessTip: {
             default: null,
             type: cc.Node
@@ -41,7 +45,8 @@ cc.Class({
         gameState: 'white',
         fiveGroup: [],
         fiveGroupScore: [],
-        audioManager: cc.Node
+        audioManager: cc.Node,
+        steps: 0
     },
 
     restartGame () {
@@ -58,6 +63,8 @@ cc.Class({
         this.resultSprite.node.active = false;
         this.newChessTip.node.active = false;
 
+        this.steps = 0;
+
         this.audioManager = this.audioManager.getComponent('AudioManager');
 
         var self = this;
@@ -72,7 +79,6 @@ cc.Class({
                     self.touchChess = this;
                     if(self.gameState === 'black' && this.getComponent(cc.Sprite).spriteFrame === null){
                         this.getComponent(cc.Sprite).spriteFrame = self.blackSpriteFrame;
-                        cc.log(this.getPositionX(), this.getPositionY());
                         self.newChessTip.node.setPosition(this.getPositionX() - 300, this.getPositionY() - 300);
                         self.audioManager.playPlayerPlaceChess();
                         self.judgeOver();
@@ -131,6 +137,7 @@ cc.Class({
     },
 
     ai () {
+        this.steps++;
         // 评分，根据五元组里的黑白棋子的不同个数去计算每个点的可能得分
         for(var i = 0; i < this.fiveGroup.length; i++) {
             var blackCount = 0; // 五元组中黑棋的个数
@@ -285,6 +292,7 @@ cc.Class({
             this.resultLabel.string = "你输了";
             this.audioManager.playLose();
         }
+        this.stepLabel.string = "走了".concat(this.steps).concat("步");
         this.audioManager.pauseBgmMusic();
         this.resultSprite.node.active = true;
         this.gameState = 'over';
